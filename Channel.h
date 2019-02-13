@@ -4,6 +4,7 @@
 struct Channel {
 	int chan_no;
 	float total_util;
+	float env_util;
 };
 
 #endif
