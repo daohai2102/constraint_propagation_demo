@@ -260,7 +260,11 @@ void push(struct LinkedList *ll, struct Node *node){
 struct Node* pop(struct LinkedList *ll){
 	if (ll->n_nodes == 0)
 		return NULL;
-	struct Node *res = ll->head;
+	struct Node *res = newNode(ll->head->data, ll->head->type);
 	removeNode(ll, ll->head);
 	return res;
+}
+
+int empty(struct LinkedList *ll){
+	return !ll->n_nodes;
 }

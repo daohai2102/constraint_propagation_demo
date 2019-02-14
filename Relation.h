@@ -2,8 +2,8 @@
 #define _RELATION_H_
 
 struct Relation{
-	int a;
-	int b;
+	int i;
+	int j;
 };
 
 #endif

@@ -79,4 +79,6 @@ struct Node* pop(struct LinkedList *ll);
 
 void push(struct LinkedList *ll, struct Node *node);
 
+int empty(struct LinkedList *ll);
+
 #endif

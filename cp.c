@@ -3,6 +3,7 @@
 #include <time.h>
 #include "LinkedList.h"
 #include "Channel.h"
+#include "Relation.h"
 
 #define MAX 100
 #define MAX_UTIL 0.9
@@ -19,6 +20,8 @@ void print_channel_utilization(int n, struct LinkedList **domains);
 struct Channel get_current_channel(int index);
 
 void node_consistent();
+int revise(int v1, int v2);
+int arc_consistent();
 
 int main(){
 	srand((time(0)));
@@ -48,12 +51,67 @@ int main(){
 		}
 	}
 
+	//n = 3;
+	//constraint = malloc(n*sizeof(int*));
+	//for (i = 0; i < n; i ++){
+	//	constraint[i] = malloc(n*sizeof(int));
+	//	int j;
+	//	for (j = 0; j < n; j++){
+	//		if (i == j){
+	//			constraint[i][j] = 0;
+	//		} else {
+	//			constraint[i][j] = 1;
+	//		}
+	//	}
+	//}
+
+	//print_topo(n, constraint);
+
+	//vars = malloc(n*sizeof(int));
+	//vars[0] = 1;
+	//vars[1] = 6;
+	//vars[2] = 11;
+
+	//domains = malloc(n*sizeof(struct LinkedList*));
+	//for(i = 0; i < n; i ++){
+	//	domains[i] = newLinkedList();
+	//}
+
+	//struct Node *node = NULL;
+	//
+	//struct Channel chan;
+	//chan.chan_no = 1;
+	//chan.env_util = 1.0;
+	//chan.total_util = 1.0;
+	//node = newNode(&chan, CHANNEL_TYPE);
+	//push(domains[0], node);
+
+	//chan.chan_no = 6;
+	//chan.env_util = 6.0;
+	//chan.total_util = 6.0;
+	//node = newNode(&chan, CHANNEL_TYPE);
+	//push(domains[0], node);
+	//
+	//chan.chan_no = 1;
+	//chan.env_util = 1.0;
+	//chan.total_util = 1.0;
+	//node = newNode(&chan, CHANNEL_TYPE);
+	//push(domains[1], node);
+
+	//chan.chan_no = 6;
+	//chan.env_util = 6.0;
+	//chan.total_util = 6.0;
+	//node = newNode(&chan, CHANNEL_TYPE);
+	//push(domains[2], node);
 
 	//print_topo(n, constraint);
 	printf("channel utilization before performing node_consistent\n");
 	print_channel_utilization(n, domains);
 	node_consistent();
 	printf("channel utilization after performing node_consistent\n");
+	print_channel_utilization(n, domains);
+	arc_consistent();
+	printf("channel utilization after performing arc_consistent\n");
 	print_channel_utilization(n, domains);
 	return 0;
 }
@@ -104,6 +162,7 @@ void print_topo(int n, int** constraint){
 void print_channel_utilization(int n, struct LinkedList **domains){
 	int i;
 	for (i = 0; i < n; i++){
+		printf("%3d: ", i);
 		struct Node *it = domains[i]->head;
 		for (; it != NULL; it = it->next){
 			struct Channel channel = *(struct Channel*)it->data;
@@ -132,7 +191,7 @@ void node_consistent(){
 	for (i = 0; i < n; i ++){
 		struct Channel cur_chan = get_current_channel(i);
 		float current_bss_util = cur_chan.total_util - cur_chan.env_util;
-		printf("%d, %f, %f, %f\n", cur_chan.chan_no, cur_chan.total_util, cur_chan.env_util, current_bss_util);
+		printf("%-3d: %d, %f, %f, %f\n", i, cur_chan.chan_no, cur_chan.total_util, cur_chan.env_util, current_bss_util);
 		struct Node *it = domains[i]->head;
 		int remove_head = 0;
 		for (; it != NULL; it = it->next){
@@ -150,4 +209,87 @@ void node_consistent(){
 		if (remove_head)
 			pop(domains[i]);
 	}
+}
+
+int revise(int v1, int v2){
+	//printf("start revising\n");
+	int deleted = 0;
+	int found = 0;
+	int remove_head = 0;
+	struct LinkedList *d1 = domains[v1];
+	struct LinkedList *d2 = domains[v2];
+	struct Node *it1 = d1->head;
+	//printf("revise preparation done\n");
+	for (; it1 != NULL; it1 = it1->next){
+		found = 0;
+		struct Channel *chan1 = (struct Channel*)it1->data;
+		struct Node *it2 = d2->head;
+		for (; it2 != NULL; it2 = it2->next){
+			struct Channel *chan2 = (struct Channel*)it2->data;
+			if (chan1->chan_no != chan2->chan_no){
+				found = 1;
+				break;
+			}
+		}
+		//printf("finding done\n");
+		if (!found){
+			if (it1 == d1->head)
+				remove_head = 1;
+			else {
+				it1 = it1->prev;
+				removeNode(d1, it1->next);
+			}
+			deleted = 1;
+		}
+		//printf("removing channel %d done\n", chan1->chan_no);
+	}
+	if (remove_head)
+		pop(d1);
+	
+	return deleted;
+}
+
+int arc_consistent(){
+	/* initialization */
+	struct LinkedList *queue = newLinkedList();
+	//printf("created revise queue\n");
+	int i, j;
+	struct Relation re;
+	for (i = 0; i < n; i++){
+		for (j = 0; j < n; j++){
+			if (constraint[i][j]){
+				//printf("push (%d, %d)\n", i, j);
+				re.i = i;
+				re.j = j;
+				struct Node *node = newNode(&re, RELATION_TYPE);
+				push(queue, node);
+			}
+		}
+	}
+	//printf("init revise queue done\n");
+
+	/* examination and propagation */
+	while (queue->n_nodes){
+		struct Node *node = pop(queue);
+		//printf("pop queue to examine\n");
+		struct Relation *r = (struct Relation*)(node->data);
+		//printf("pop (%d, %d)\n", r->i, r->j);
+		if (revise(r->i, r->j)){
+			if (empty(domains[r->i])){
+				return 0;
+			} else {
+				int k;
+				for (k = 0; k < n; k++){
+					if (k != r->j && constraint[k][r->i]){
+						re.i = k;
+						re.j = r->i;
+						struct Node *node = newNode(&re, RELATION_TYPE);
+						push(queue, node);
+					}
+				}
+			}
+		}
+	}
+
+	return 1;
 }
