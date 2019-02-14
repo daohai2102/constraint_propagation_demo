@@ -19,6 +19,7 @@
 #define PTHREAD_T_TYPE 4
 #define STRING_TYPE 5
 #define CHANNEL_TYPE 6
+#define RELATION_TYPE 7
 
 struct FileOwner{
 	char filename[256];

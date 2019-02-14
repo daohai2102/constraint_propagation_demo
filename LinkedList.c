@@ -4,6 +4,7 @@
 #include <string.h>
 #include "LinkedList.h"
 #include "Channel.h"
+#include "Relation.h"
 
 struct Node* newNode(void *data, int data_type){
 	struct Node* newN = malloc(sizeof(struct Node));
@@ -63,6 +64,14 @@ struct Node* newNode(void *data, int data_type){
 			*tmp = *((struct Channel*)data);
 			newN->data = tmp;
 			newN->type = CHANNEL_TYPE;
+			break;
+		}
+		case RELATION_TYPE:
+		{
+			struct Relation *tmp = malloc(sizeof(struct Relation));
+			*tmp = *(struct Relation*)data;
+			newN->data = tmp;
+			newN->type = RELATION_TYPE;
 			break;
 		}
 		default:
